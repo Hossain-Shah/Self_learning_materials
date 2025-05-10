@@ -10,30 +10,19 @@ Original file is located at
 """
 
 # dependencies installation
-!pip install ultralytics opencv-python pytesseract
-
-# package update
-!sudo apt update
-!sudo apt install -y tesseract-ocr
+!pip install ultralytics opencv-python paddleocr paddlepaddle --upgrade
 
 # importing dependencies
 import cv2
-import pytesseract
+from paddleocr import PaddleOCR
 from ultralytics import YOLO
 from google.colab.patches import cv2_imshow
 
-# ---------- Preprocess for OCR ----------
-def preprocess_for_ocr(cropped_img):
-    gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (3, 3), 0)
-    _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    resized = cv2.resize(thresh, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-    return resized
-
 # Load YOLO model (YOLOv8n pretrained on COCO by default)
 model = YOLO("yolov8n.pt")
+
 # OCR config
-custom_config = r'--oem 3 --psm 6'
+custom_config = PaddleOCR(use_angle_cls=True, lang='en')
 
 # Load image
 image_path = "/content/drive/MyDrive/Colab_Notebooks/objects/whirlpool.jpg"
@@ -57,10 +46,12 @@ for result in results:
             cropped = image[y1:y2, x1:x2]
 
             # Apply OCR
-            processed = preprocess_for_ocr(cropped)
-            text = pytesseract.image_to_string(processed, config=custom_config).lower().strip()
-
-            print("📝 OCR Text Detected:\n", text if text else "No readable text found.")
+            result = custom_config.ocr(image_path, cls=True)
+            if result[0]:
+                for line in result[0]:
+                  print("📝 OCR Text Detected:", line[1][0])
+            else:
+                print("No readable text found.")
 
 """# **API approach**"""
 
